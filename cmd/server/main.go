@@ -2,33 +2,62 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/Anwesa-s/AKSH/internal/handlers"
+	"github.com/Anwesa-s/AKSH/internal/config"
+	"github.com/Anwesa-s/AKSH/internal/proxy"
 	"github.com/Anwesa-s/AKSH/internal/router"
 )
 
 func main() {
 
+	// Load configuration
+	cfg, err := config.Load("config/config.yaml")
+	if err != nil {
+		log.Fatal("Failed to load config:", err)
+	}
+
+	// Create router
 	r := router.NewRouter()
 
-	r.Register("/", handlers.HomeHandler)
-	r.Register("/health", handlers.HealthHandler)
-	r.Register("/version", handlers.VersionHandler)
+	// Register routes from configuration
+	for _, route := range cfg.Routes {
 
-	r.Register("/users", handlers.UsersHandler)
-  r.Register("/users/:id", handlers.UsersHandler)
+		service, exists := cfg.Services[route.Service]
 
-  r.Register("/orders", handlers.OrdersHandler)
-  r.Register("/orders/:id", handlers.OrdersHandler)
+		if !exists {
+			log.Printf(
+				"Service %s not found for route %s",
+				route.Service,
+				route.Path,
+			)
+			continue
+		}
 
-  r.Register("/payments", handlers.PaymentsHandler)
-  r.Register("/payments/:id", handlers.PaymentsHandler)
+		serviceProxy, err := proxy.NewProxy(service.URL)
+		if err != nil {
+			log.Printf(
+				"Failed to create proxy for %s: %v",
+				route.Service,
+				err,
+			)
+			continue
+		}
+
+		r.Register(route.Path, serviceProxy.ServeHTTP)
+
+		fmt.Printf(
+			"Registered route: %s → %s\n",
+			route.Path,
+			service.URL,
+		)
+	}
 
 	fmt.Println("🚀 AKSH running on http://localhost:8080")
 
-	err := http.ListenAndServe(":8080", r)
+	err = http.ListenAndServe(":8080", r)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
