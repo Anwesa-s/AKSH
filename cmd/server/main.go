@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/Anwesa-s/AKSH/internal/config"
+	"github.com/Anwesa-s/AKSH/internal/middleware"
 	"github.com/Anwesa-s/AKSH/internal/proxy"
 	"github.com/Anwesa-s/AKSH/internal/router"
+	"github.com/Anwesa-s/AKSH/internal/handlers"
 )
 
 func main() {
@@ -20,6 +22,16 @@ func main() {
 
 	// Create router
 	r := router.NewRouter()
+	r.Register(
+	"/admin",
+	middleware.Auth(
+		middleware.AdminOnly(
+			http.HandlerFunc(handlers.AdminHandler),
+		),
+	).ServeHTTP,
+)
+
+	r.Register("/login", handlers.LoginHandler)
 
 	// Register routes from configuration
 	for _, route := range cfg.Routes {
@@ -54,9 +66,14 @@ func main() {
 		)
 	}
 
+	// Add middleware
+	handler := middleware.Logger(
+		    middleware.Auth(r),
+	)
+
 	fmt.Println("🚀 AKSH running on http://localhost:8080")
 
-	err = http.ListenAndServe(":8080", r)
+	err = http.ListenAndServe(":8080", handler)
 	if err != nil {
 		log.Fatal(err)
 	}
