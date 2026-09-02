@@ -30,3 +30,28 @@ func TestLimiter(t *testing.T) {
 		t.Fatal("request should be allowed after token refill")
 	}
 }
+func TestMultipleClients(t *testing.T) {
+	limiter := NewLimiter(1, 2)
+
+	clientA := "192.168.1.10"
+	clientB := "192.168.1.20"
+
+	// Client A uses both available tokens.
+	if !limiter.Allow(clientA) {
+		t.Fatal("client A request 1 should be allowed")
+	}
+
+	if !limiter.Allow(clientA) {
+		t.Fatal("client A request 2 should be allowed")
+	}
+
+	// Client A should now be rate limited.
+	if limiter.Allow(clientA) {
+		t.Fatal("client A request 3 should be rejected")
+	}
+
+	// Client B has its own bucket, so it should still be allowed.
+	if !limiter.Allow(clientB) {
+		t.Fatal("client B request 1 should be allowed")
+	}
+}
