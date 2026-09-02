@@ -10,6 +10,7 @@ import (
 	"github.com/Anwesa-s/AKSH/internal/proxy"
 	"github.com/Anwesa-s/AKSH/internal/router"
 	"github.com/Anwesa-s/AKSH/internal/handlers"
+	"github.com/Anwesa-s/AKSH/internal/ratelimit"
 )
 
 func main() {
@@ -66,11 +67,18 @@ func main() {
 		)
 	}
 
-	// Add middleware
-	handler := middleware.Logger(
-		    middleware.Auth(r),
-	)
+	// Create rate limiter
+limiter := ratelimit.NewLimiter(
+	cfg.RateLimit.Rate,
+	cfg.RateLimit.Burst,
+)
 
+// Add middleware
+handler := middleware.Logger(
+		middleware.RateLimit(limiter)(
+			middleware.Auth(r),
+		),
+	)
 	fmt.Println("🚀 AKSH running on http://localhost:8080")
 
 	err = http.ListenAndServe(":8080", handler)

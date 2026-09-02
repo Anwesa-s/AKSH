@@ -17,3 +17,7 @@ routes:
   
   - path: /payments
     service: payments
+
+rate_limit:
+  rate: 1
+  burst: 5

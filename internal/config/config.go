@@ -15,10 +15,18 @@ type Route struct {
 	Service string `yaml:"service"`
 }
 
+type RateLimitConfig struct {
+	Rate  float64 `yaml:"rate"`
+	Burst float64 `yaml:"burst"`
+}
+
 type Config struct {
 	Services map[string]Service `yaml:"services"`
 	Routes   []Route             `yaml:"routes"` //slice of routes([]Route)
+	RateLimit RateLimitConfig     `yaml:"rate_limit"`
 }
+
+
 //configuration loader
 func Load(path string) (*Config, error) {
 
