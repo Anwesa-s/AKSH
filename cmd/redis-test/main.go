@@ -1,10 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/Anwesa-s/AKSH/internal/ratelimit"
 	"github.com/Anwesa-s/AKSH/internal/redis"
 )
 
@@ -12,21 +13,26 @@ func main() {
 
 	client := redis.NewClient("localhost:6379")
 
-	ctx := context.Background()
+	limiter := ratelimit.NewRedisLimiter(
+		client,
+		5,
+		10*time.Second,
+	)
 
-	// Store a value in Redis
-	err := client.Set(ctx, "aksh:test", "hello-redis", 0).Err()
-	if err != nil {
-		log.Fatal("Failed to set value:", err)
+	key := "127.0.0.1"
+
+	for i := 1; i <= 8; i++ {
+
+		allowed, err := limiter.Allow(key)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf(
+			"Request %d → allowed: %v\n",
+			i,
+			allowed,
+		)
 	}
-
-	fmt.Println("Value stored in Redis")
-
-	// Retrieve the value
-	value, err := client.Get(ctx, "aksh:test").Result()
-	if err != nil {
-		log.Fatal("Failed to get value:", err)
-	}
-
-	fmt.Println("Value retrieved:", value)
 }

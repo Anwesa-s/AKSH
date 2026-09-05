@@ -3,24 +3,37 @@ package middleware
 import (
 	"net"
 	"net/http"
-
-	"github.com/Anwesa-s/AKSH/internal/ratelimit"
+	"strings"
 )
 
-func RateLimit(limiter *ratelimit.Limiter) func(http.Handler) http.Handler {
+type RateLimiter interface {
+	Allow(key string) (bool, error)
+}
+
+func RateLimit(limiter RateLimiter) func(http.Handler) http.Handler {
+
 	return func(next http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			// Extract client IP from RemoteAddr
-			host, _, err := net.SplitHostPort(r.RemoteAddr)
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
 
 			if err != nil {
-				host = r.RemoteAddr
+				ip = strings.Split(r.RemoteAddr, ":")[0]
 			}
 
-			if !limiter.Allow(host) {
-				w.Header().Set("Retry-After", "1")
+			allowed, err := limiter.Allow(ip)
+
+			if err != nil {
+				http.Error(
+					w,
+					"Rate limiter error",
+					http.StatusInternalServerError,
+				)
+				return
+			}
+
+			if !allowed {
 				http.Error(
 					w,
 					"Too Many Requests",

@@ -16,18 +16,17 @@ type Route struct {
 }
 
 type RateLimitConfig struct {
-	Rate  float64 `yaml:"rate"`
-	Burst float64 `yaml:"burst"`
+	Limit  int    `yaml:"limit"`
+	Window string `yaml:"window"`
 }
 
 type Config struct {
-	Services map[string]Service `yaml:"services"`
-	Routes   []Route             `yaml:"routes"` //slice of routes([]Route)
-	RateLimit RateLimitConfig     `yaml:"rate_limit"`
+	Services  map[string]Service `yaml:"services"`
+	Routes    []Route            `yaml:"routes"`
+	RateLimit RateLimitConfig    `yaml:"rate_limit"`
 }
 
-
-//configuration loader
+// configuration loader
 func Load(path string) (*Config, error) {
 
 	data, err := os.ReadFile(path)
@@ -37,7 +36,7 @@ func Load(path string) (*Config, error) {
 
 	var config Config
 
-	err = yaml.Unmarshal(data, &config)  //YAML into Go structure(Unmarshal)
+	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, err
 	}

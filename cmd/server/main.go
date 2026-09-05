@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Anwesa-s/AKSH/internal/config"
+	"github.com/Anwesa-s/AKSH/internal/handlers"
 	"github.com/Anwesa-s/AKSH/internal/middleware"
 	"github.com/Anwesa-s/AKSH/internal/proxy"
-	"github.com/Anwesa-s/AKSH/internal/router"
-	"github.com/Anwesa-s/AKSH/internal/handlers"
 	"github.com/Anwesa-s/AKSH/internal/ratelimit"
+	"github.com/Anwesa-s/AKSH/internal/redis"
+	"github.com/Anwesa-s/AKSH/internal/router"
 )
 
 func main() {
@@ -23,15 +25,18 @@ func main() {
 
 	// Create router
 	r := router.NewRouter()
-	r.Register(
-	"/admin",
-	middleware.Auth(
-		middleware.AdminOnly(
-			http.HandlerFunc(handlers.AdminHandler),
-		),
-	).ServeHTTP,
-)
 
+	// Admin route
+	r.Register(
+		"/admin",
+		middleware.Auth(
+			middleware.AdminOnly(
+				http.HandlerFunc(handlers.AdminHandler),
+			),
+		).ServeHTTP,
+	)
+
+	// Login route
 	r.Register("/login", handlers.LoginHandler)
 
 	// Register routes from configuration
@@ -67,18 +72,28 @@ func main() {
 		)
 	}
 
-	// Create rate limiter
-limiter := ratelimit.NewLimiter(
-	cfg.RateLimit.Rate,
-	cfg.RateLimit.Burst,
-)
+	// Create Redis client
+	redisClient := redis.NewClient("localhost:6379")
 
-// Add middleware
-handler := middleware.Logger(
+	// Parse rate-limit window from configuration
+	window, err := time.ParseDuration(cfg.RateLimit.Window)
+	if err != nil {
+		log.Fatal("Invalid rate limit window:", err)
+	}
+
+	// Create Redis-backed rate limiter
+	limiter := ratelimit.NewRedisLimiter(
+		redisClient,
+		cfg.RateLimit.Limit,
+		window,
+	)
+	// Add middleware
+	handler := middleware.Logger(
 		middleware.RateLimit(limiter)(
 			middleware.Auth(r),
 		),
 	)
+
 	fmt.Println("🚀 AKSH running on http://localhost:8080")
 
 	err = http.ListenAndServe(":8080", handler)
