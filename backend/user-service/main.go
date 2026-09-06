@@ -45,9 +45,19 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "healthy",
+	})
+}
+
 func main() {
 
 	http.HandleFunc("/users", userHandler)
+	http.HandleFunc("/health", healthHandler)
 
 	fmt.Println("👤 User Service running on http://localhost:9001")
 

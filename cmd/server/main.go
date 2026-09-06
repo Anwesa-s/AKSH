@@ -39,6 +39,9 @@ func main() {
 	// Login route
 	r.Register("/login", handlers.LoginHandler)
 
+	// Health route
+	r.Register("/health", handlers.HealthHandler)
+
 	// Register routes from configuration
 	for _, route := range cfg.Routes {
 

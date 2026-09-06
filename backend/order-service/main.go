@@ -24,10 +24,19 @@ func orderHandler(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(order)
 }
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "healthy",
+	})
+}
 
 func main() {
 
 	http.HandleFunc("/orders", orderHandler)
+	http.HandleFunc("/health", healthHandler)
 
 	fmt.Println("📦 Order Service running on http://localhost:9002")
 

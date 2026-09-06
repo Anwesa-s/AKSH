@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Anwesa-s/AKSH/internal/health"
 	"github.com/Anwesa-s/AKSH/internal/models"
-	
 )
 
 // Home endpoint
@@ -19,13 +19,37 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Health endpoint
+type HealthResponse struct {
+	Status   string                 `json:"status"`
+	Services []health.ServiceStatus `json:"services"`
+}
+
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(models.Response{
-		Status: "Healthy",
-	})
+	services := []health.ServiceStatus{
+		health.CheckService("users", "http://localhost:9001"),
+		health.CheckService("orders", "http://localhost:9002"),
+		health.CheckService("payments", "http://localhost:9003"),
+	}
+
+	status := "healthy"
+
+	for _, service := range services {
+		if service.Status != "healthy" {
+			status = "unhealthy"
+			break
+		}
+	}
+
+	response := HealthResponse{
+		Status:   status,
+		Services: services,
+	}
+	if status == "unhealthy" {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 // Version endpoint

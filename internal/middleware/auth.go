@@ -1,10 +1,10 @@
 package middleware
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
-	"fmt"
-	"context"
 
 	"github.com/Anwesa-s/AKSH/internal/auth"
 	"github.com/golang-jwt/jwt/v5"
@@ -22,7 +22,7 @@ func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// Login does not require authentication.
-		if r.URL.Path == "/login" {
+		if r.URL.Path == "/login" || r.URL.Path == "/health" {
 			next.ServeHTTP(w, r)
 			return
 		}

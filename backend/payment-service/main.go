@@ -24,10 +24,19 @@ func paymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(payment)
 }
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "healthy",
+	})
+}
 
 func main() {
 
 	http.HandleFunc("/payments", paymentHandler)
+	http.HandleFunc("/health", healthHandler)
 
 	fmt.Println("💳 Payment Service running on http://localhost:9003")
 
